@@ -20,16 +20,16 @@
 #	Abstract:	Builds a container to compile Subscription Manager's code
 #	Date:		28 May 2019
 #
-FROM nexus3.o-ran-sc.org:10004/bldr-ubuntu18-c-go:3-u18.04-nng as submgrbuild
+FROM cachengo/bldr-ubuntu18-c-go-aarch64:3-u18.04-nng as submgrbuild
 
 RUN apt update && apt install -y iputils-ping net-tools curl tcpdump gdb
 
 WORKDIR /tmp
 
 # Install RMr shared library
-RUN wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr_1.10.0_amd64.deb/download.deb && dpkg -i rmr_1.10.0_amd64.deb && rm -rf rmr_1.10.0_amd64.deb
+RUN wget --content-disposition http://artifacts.cachengo.com/ric-deps/rmr-rotten_1.10.0_aarch64.deb && dpkg -i rmr-rotten_1.10.0_aarch64.deb && rm -rf rmr-rotten_1.10.0_aarch64.deb
 # Install RMr development header files
-RUN wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr-dev_1.10.0_amd64.deb/download.deb && dpkg -i rmr-dev_1.10.0_amd64.deb && rm -rf rmr-dev_1.10.0_amd64.deb
+RUN wget --content-disposition http://artifacts.cachengo.com/ric-deps/rmr-dev-rotten_1.10.0_aarch64.deb && dpkg -i rmr-dev-rotten_1.10.0_aarch64.deb && rm -rf rmr-dev-rotten_1.10.0_aarch64.deb
 
 # "PULLING LOG and COMPILING LOG"
 #RUN git clone "https://gerrit.o-ran-sc.org/r/com/log" /opt/log && cd /opt/log && \
@@ -37,10 +37,10 @@ RUN wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages
 
 # "Installing Swagger"
 RUN cd /usr/local/go/bin \
-    && wget --quiet https://github.com/go-swagger/go-swagger/releases/download/v0.19.0/swagger_linux_amd64 \
-    && mv swagger_linux_amd64 swagger \
+    && if test "$(uname -m)" = "aarch64" ; then ARCH="arm64"; else ARCH="amd64"; fi \
+    && wget --quiet https://github.com/go-swagger/go-swagger/releases/download/v0.19.0/swagger_linux_$ARCH \
+    && mv swagger_linux_$ARCH swagger \
     && chmod +x swagger
-
 
 WORKDIR /opt/submgr
 
