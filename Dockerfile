@@ -20,14 +20,18 @@
 #	Abstract:	Builds a container to compile Subscription Manager's code
 #	Date:		28 May 2019
 #
-FROM nexus3.o-ran-sc.org:10004/bldr-ubuntu18-c-go:2-u18.04-nng as submgrbuild
+
+FROM akrainoenea/bldr-ubuntu18-c-go-aarch64:3-u18.04-nng as submgrbuild
 
 WORKDIR /tmp
 
 # Install RMr shared library
-RUN wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr_1.9.0_amd64.deb/download.deb && dpkg -i rmr_1.9.0_amd64.deb && rm -rf rmr_1.9.0_amd64.deb
-# Install RMr development header files
-RUN wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr-dev_1.9.0_amd64.deb/download.deb && dpkg -i rmr-dev_1.9.0_amd64.deb && rm -rf rmr-dev_1.9.0_amd64.deb
+ENV RMR_VER=1.9.0
+RUN git clone https://gerrit.o-ran-sc.org/r/ric-plt/lib/rmr -b ${RMR_VER} \
+    && mkdir -p rmr/build \
+    && cd rmr/build \
+    && ( cmake -DDEV_PKG=1 .. && make install && ldconfig ) \
+    && ( cmake -DDEV_PKG=0 .. && make install && ldconfig )
 
 # "PULLING LOG and COMPILING LOG"
 RUN git clone "https://gerrit.o-ran-sc.org/r/com/log" /opt/log && cd /opt/log && \
@@ -35,10 +39,10 @@ RUN git clone "https://gerrit.o-ran-sc.org/r/com/log" /opt/log && cd /opt/log &&
 
 # "Installing Swagger"
 RUN cd /usr/local/go/bin \
-    && wget --quiet https://github.com/go-swagger/go-swagger/releases/download/v0.19.0/swagger_linux_amd64 \
-    && mv swagger_linux_amd64 swagger \
+    && if test "$(uname -m)" = "aarch64" ; then ARCH="arm64"; else ARCH="amd64"; fi \
+    && wget --quiet https://github.com/go-swagger/go-swagger/releases/download/v0.19.0/swagger_linux_$ARCH \
+    && mv swagger_linux_$ARCH swagger \
     && chmod +x swagger
-
 
 WORKDIR /opt/submgr
 COPY e2ap e2ap
